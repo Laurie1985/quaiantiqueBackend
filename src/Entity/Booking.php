@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Entity;
 
 use App\Repository\BookingRepository;
@@ -20,21 +19,25 @@ class Booking
     #[ORM\Column(type: Types::DATE_MUTABLE)]
     private ?\DateTime $orderDate = null;
 
-    #[ORM\Column(type: Types::TIME_MUTABLE)]
+    #[ORM\Column(type : Types::TIME_MUTABLE)]
     private ?\DateTime $orderHour = null;
 
-    #[ORM\Column(length: 255, nullable: true)]
+    #[ORM\Column(length : 255, nullable: true)]
     private ?string $allergy = null;
 
     #[ORM\Column]
     private ?\DateTimeImmutable $createdAt = null;
 
-    #[ORM\Column(nullable: true)]
+    #[ORM\Column(nullable : true)]
     private ?\DateTimeImmutable $updatedAt = null;
+
+    #[ORM\ManyToOne(inversedBy : 'bookings')]
+    #[ORM\JoinColumn(nullable: false)]
+    private ?Restaurant $restaurant = null;
 
     #[ORM\ManyToOne(inversedBy: 'bookings')]
     #[ORM\JoinColumn(nullable: false)]
-    private ?Restaurant $restaurant = null;
+    private ?User $user = null;
 
     public function getId(): ?int
     {
@@ -106,7 +109,7 @@ class Booking
         return $this->updatedAt;
     }
 
-    public function setUpdatedAt(?\DateTimeImmutable $updatedAt): static
+    public function setUpdatedAt( ? \DateTimeImmutable $updatedAt): static
     {
         $this->updatedAt = $updatedAt;
 
@@ -121,6 +124,18 @@ class Booking
     public function setRestaurant(?Restaurant $restaurant): static
     {
         $this->restaurant = $restaurant;
+
+        return $this;
+    }
+
+    public function getUser(): ?User
+    {
+        return $this->user;
+    }
+
+    public function setUser(?User $user): static
+    {
+        $this->user = $user;
 
         return $this;
     }
