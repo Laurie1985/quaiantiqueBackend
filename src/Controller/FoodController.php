@@ -2,8 +2,10 @@
 namespace App\Controller;
 
 use App\Entity\Food;
+use App\Repository\CategoryRepository;
 use App\Repository\FoodRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use OpenApi\Attributes as OA;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -21,9 +23,69 @@ class FoodController extends AbstractController
         private FoodRepository $repository,
         private SerializerInterface $serializer,
         private UrlGeneratorInterface $urlGenerator,
+        private CategoryRepository $categoryRepository,
     ) {}
 
     #[Route('', name: 'new', methods: ['POST'])]
+    #[OA\Post(
+        path: '/api/food',
+        summary: "Créer un plat",
+        requestBody: new OA\RequestBody(
+            required: true,
+            description: "Données du plat à créer",
+            content: new OA\JsonContent(
+                type: "object",
+                required: ["title", "description", "price"],
+                properties: [
+                    new OA\Property(property: "title", type: "string", example: "saumon en papillote"),
+                    new OA\Property(property: "description", type: "string", example: "plat de poisson"),
+                    new OA\Property(property: "price", type: "integer", example: 19),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(
+                response: 201,
+                description: "Plat créé avec succès",
+                content: new OA\JsonContent(
+                    type: "object",
+                    properties: [
+                        new OA\Property(property: "message", type: "string", example: "Plat créé avec succès"),
+                        new OA\Property(
+                            property: "plat",
+                            type: "object",
+                            properties: [
+                                new OA\Property(property: "id", type: "integer", example: 1),
+                                new OA\Property(property: "title", type: "string", example: "saumon en papillote"),
+                                new OA\Property(property: "description", type: "string", example: "plat de poisson"),
+                                new OA\Property(property: "price", type: "integer", example: 19),
+                            ]
+                        ),
+                    ]
+                )
+            ),
+            new OA\Response(
+                response: 400,
+                description: "Données manquantes",
+                content: new OA\JsonContent(
+                    type: "object",
+                    properties: [
+                        new OA\Property(property: "error", type: "string", example: "Données manquantes."),
+                    ]
+                )
+            ),
+            new OA\Response(
+                response: 404,
+                description: "Plat non trouvé",
+                content: new OA\JsonContent(
+                    type: "object",
+                    properties: [
+                        new OA\Property(property: "error", type: "string", example: "Plat non trouvé"),
+                    ]
+                )
+            ),
+        ]
+    )]
     public function new (Request $request): JsonResponse
     {
         $food = $this->serializer->deserialize($request->getContent(), Food::class, 'json');
@@ -35,7 +97,7 @@ class FoodController extends AbstractController
 
         $responseData = $this->serializer->serialize($food, 'json');
         $location     = $this->urlGenerator->generate(
-            'app_api_restaurant_show',
+            'app_api_food_show',
             ['id' => $food->getId()],
             UrlGeneratorInterface::ABSOLUTE_URL,
         );
@@ -43,6 +105,28 @@ class FoodController extends AbstractController
     }
 
     #[Route('', name: 'list', methods: ['GET'])]
+    #[OA\Get(
+        path: '/api/food',
+        summary: "Lister tous les plats",
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: "Liste des plats",
+                content: new OA\JsonContent(
+                    type: "array",
+                    items: new OA\Items(
+                        type: "object",
+                        properties: [
+                            new OA\Property(property: "id", type: "integer", example: 1),
+                            new OA\Property(property: "title", type: "string", example: "saumon en papillote"),
+                            new OA\Property(property: "description", type: "string", example: "plat de poisson"),
+                            new OA\Property(property: "price", type: "integer", example: 19),
+                        ]
+                    )
+                )
+            ),
+        ]
+    )]
     public function list(): JsonResponse
     {
         $foods = $this->repository->findAll();
@@ -51,7 +135,104 @@ class FoodController extends AbstractController
         return new JsonResponse($responseData, Response::HTTP_OK, [], true);
     }
 
+    #[Route('/category/{categoryId}', name: 'list_by_category', methods: ['GET'])]
+    #[OA\Get(
+        path: '/api/food/category/{categoryId}',
+        summary: "Lister les plats d'une catégorie",
+        parameters: [
+            new OA\Parameter(
+                name: 'categoryId',
+                in: 'path',
+                required: true,
+                description: "ID de la catégorie",
+                schema: new OA\Schema(type: 'integer', example: 1)
+            ),
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: "Liste des plats de la catégorie",
+                content: new OA\JsonContent(
+                    type: "array",
+                    items: new OA\Items(
+                        type: "object",
+                        properties: [
+                            new OA\Property(property: "id", type: "integer", example: 1),
+                            new OA\Property(property: "title", type: "string", example: "saumon en papillote"),
+                            new OA\Property(property: "description", type: "string", example: "plat de poisson"),
+                            new OA\Property(property: "price", type: "integer", example: 19),
+                        ]
+                    )
+                )
+            ),
+            new OA\Response(
+                response: 404,
+                description: "Catégorie non trouvée"
+            ),
+        ]
+    )]
+    public function listByCategory(int $categoryId): JsonResponse
+    {
+        $category = $this->categoryRepository->find($categoryId);
+
+        if (! $category) {
+            return new JsonResponse(['error' => 'Catégorie non trouvée'], Response::HTTP_NOT_FOUND);
+        }
+
+        $foods = $category->getFood();
+
+        $data = [];
+        foreach ($foods as $food) {
+            $data[] = [
+                'id'          => $food->getId(),
+                'title'       => $food->getTitle(),
+                'description' => $food->getDescription(),
+                'price'       => $food->getPrice(),
+            ];
+        }
+
+        return new JsonResponse($data);
+    }
+
     #[Route('/{id}', name: 'show', methods: ['GET'])]
+    #[OA\Get(
+        path: '/api/food/{id}',
+        summary: "Afficher un plat",
+        parameters: [
+            new OA\Parameter(
+                name: 'id',
+                in: 'path',
+                required: true,
+                description: "ID du plat",
+                schema: new OA\Schema(type: 'integer', example: 1)
+            ),
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: "Détails du plat",
+                content: new OA\JsonContent(
+                    type: "object",
+                    properties: [
+                        new OA\Property(property: "id", type: "integer", example: 1),
+                        new OA\Property(property: "title", type: "string", example: "saumon en papillote"),
+                        new OA\Property(property: "description", type: "string", example: "plat de poisson"),
+                        new OA\Property(property: "price", type: "integer", example: 36),
+                    ]
+                )
+            ),
+            new OA\Response(
+                response: 404,
+                description: "Plat non trouvé",
+                content: new OA\JsonContent(
+                    type: "object",
+                    properties: [
+                        new OA\Property(property: "error", type: "string", example: "Plat non trouvé"),
+                    ]
+                )
+            ),
+        ]
+    )]
     public function show(int $id): JsonResponse
     {
         $food = $this->repository->find($id);
@@ -66,6 +247,47 @@ class FoodController extends AbstractController
     }
 
     #[Route('/{id}', name: 'edit', methods: ['PUT'])]
+    #[OA\Put(
+        path: '/api/food/{id}',
+        summary: "Modifier un plat",
+        parameters: [
+            new OA\Parameter(
+                name: 'id',
+                in: 'path',
+                required: true,
+                description: "ID du plat",
+                schema: new OA\Schema(type: 'integer', example: 1)
+            ),
+        ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            description: "Données à modifier (tous les champs sont optionnels)",
+            content: new OA\JsonContent(
+                type: "object",
+                properties: [
+                    new OA\Property(property: "title", type: "string", example: "Nouveau titre"),
+                    new OA\Property(property: "description", type: "string", example: "nouvelle description"),
+                    new OA\Property(property: "price", type: "integer", example: 16),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(
+                response: 204,
+                description: "Plat modifié avec succès",
+            ),
+            new OA\Response(
+                response: 404,
+                description: "Plat non trouvé",
+                content: new OA\JsonContent(
+                    type: "object",
+                    properties: [
+                        new OA\Property(property: "error", type: "string", example: "Plat non trouvé"),
+                    ]
+                )
+            ),
+        ]
+    )]
     public function edit(int $id, Request $request): JsonResponse
     {
         $food = $this->repository->find($id);
@@ -84,6 +306,35 @@ class FoodController extends AbstractController
     }
 
     #[Route('/{id}', name: 'delete', methods: ['DELETE'])]
+    #[OA\Delete(
+        path: '/api/food/{id}',
+        summary: "Supprimer un plat",
+        parameters: [
+            new OA\Parameter(
+                name: 'id',
+                in: 'path',
+                required: true,
+                description: "ID du plat",
+                schema: new OA\Schema(type: 'integer', example: 1)
+            ),
+        ],
+        responses: [
+            new OA\Response(
+                response: 204,
+                description: "Plat supprimé avec succès"
+            ),
+            new OA\Response(
+                response: 404,
+                description: "Plat non trouvé",
+                content: new OA\JsonContent(
+                    type: "object",
+                    properties: [
+                        new OA\Property(property: "error", type: "string", example: "Plat non trouvé"),
+                    ]
+                )
+            ),
+        ]
+    )]
     public function delete(int $id): JsonResponse
     {
         $food = $this->repository->find($id);

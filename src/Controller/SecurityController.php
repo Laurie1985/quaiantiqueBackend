@@ -118,7 +118,6 @@ class SecurityController extends AbstractController
     #[OA\Get(
         path: '/api/me',
         summary: "Voir le profil de l'utilisateur connecté",
-        security: [['Bearer' => []]],
         responses: [
             new OA\Response(
                 response: 200,
@@ -173,7 +172,6 @@ class SecurityController extends AbstractController
     #[OA\Put(
         path: '/api/edit',
         summary: "Modifier le profil de l'utilisateur connecté",
-        security: [['Bearer' => []]],
         requestBody: new OA\RequestBody(
             required: true,
             description: "Données à modifier",

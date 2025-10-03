@@ -4,6 +4,7 @@ namespace App\Controller;
 use App\Entity\Category;
 use App\Repository\CategoryRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use OpenApi\Attributes as OA;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -24,6 +25,61 @@ class CategoryController extends AbstractController
     ) {}
 
     #[Route('', name: 'new', methods: ['POST'])]
+    #[OA\Post(
+        path: '/api/category',
+        summary: "Créer une catégorie",
+        requestBody: new OA\RequestBody(
+            required: true,
+            description: "Données de la catégorie à créer",
+            content: new OA\JsonContent(
+                type: "object",
+                required: ["title"],
+                properties: [
+                    new OA\Property(property: "title", type: "string", example: "desserts"),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(
+                response: 201,
+                description: "Catégorie créée avec succès",
+                content: new OA\JsonContent(
+                    type: "object",
+                    properties: [
+                        new OA\Property(property: "message", type: "string", example: "Catégorie créée avec succès"),
+                        new OA\Property(
+                            property: "category",
+                            type: "object",
+                            properties: [
+                                new OA\Property(property: "id", type: "integer", example: 1),
+                                new OA\Property(property: "title", type: "string", example: "desserts"),
+                            ]
+                        ),
+                    ]
+                )
+            ),
+            new OA\Response(
+                response: 400,
+                description: "Données manquantes",
+                content: new OA\JsonContent(
+                    type: "object",
+                    properties: [
+                        new OA\Property(property: "error", type: "string", example: "Données manquantes."),
+                    ]
+                )
+            ),
+            new OA\Response(
+                response: 404,
+                description: "Categorie non trouvée",
+                content: new OA\JsonContent(
+                    type: "object",
+                    properties: [
+                        new OA\Property(property: "error", type: "string", example: "Categorie non trouvée"),
+                    ]
+                )
+            ),
+        ]
+    )]
     public function new (Request $request): JsonResponse
     {
         $category = $this->serializer->deserialize($request->getContent(), Category::class, 'json');
@@ -42,6 +98,26 @@ class CategoryController extends AbstractController
     }
 
     #[Route('', name: 'list', methods: ['GET'])]
+    #[OA\Get(
+        path: '/api/category',
+        summary: "Lister toutes les catégories",
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: "Liste des catégories",
+                content: new OA\JsonContent(
+                    type: "array",
+                    items: new OA\Items(
+                        type: "object",
+                        properties: [
+                            new OA\Property(property: "id", type: "integer", example: 1),
+                            new OA\Property(property: "title", type: "string", example: "desserts"),
+                        ]
+                    )
+                )
+            ),
+        ]
+    )]
     public function list(): JsonResponse
     {
         $categories = $this->repository->findAll();
@@ -51,6 +127,42 @@ class CategoryController extends AbstractController
     }
 
     #[Route('/{id}', name: 'show', methods: ['GET'])]
+    #[OA\Get(
+        path: '/api/category/{id}',
+        summary: "Afficher une catégorie",
+        parameters: [
+            new OA\Parameter(
+                name: 'id',
+                in: 'path',
+                required: true,
+                description: "ID de la catégorie",
+                schema: new OA\Schema(type: 'integer', example: 1)
+            ),
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: "Détails de la catégorie",
+                content: new OA\JsonContent(
+                    type: "object",
+                    properties: [
+                        new OA\Property(property: "id", type: "integer", example: 1),
+                        new OA\Property(property: "title", type: "string", example: "desserts"),
+                    ]
+                )
+            ),
+            new OA\Response(
+                response: 404,
+                description: "Catégorie non trouvée",
+                content: new OA\JsonContent(
+                    type: "object",
+                    properties: [
+                        new OA\Property(property: "error", type: "string", example: "Catégorie non trouvée"),
+                    ]
+                )
+            ),
+        ]
+    )]
     public function show(int $id): JsonResponse
     {
         $category = $this->repository->find($id);
@@ -64,6 +176,45 @@ class CategoryController extends AbstractController
     }
 
     #[Route('/{id}', name: 'edit', methods: ['PUT'])]
+    #[OA\Put(
+        path: '/api/category/{id}',
+        summary: "Modifier une catégorie",
+        parameters: [
+            new OA\Parameter(
+                name: 'id',
+                in: 'path',
+                required: true,
+                description: "ID de la catégorie",
+                schema: new OA\Schema(type: 'integer', example: 1)
+            ),
+        ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            description: "Données à modifier (tous les champs sont optionnels)",
+            content: new OA\JsonContent(
+                type: "object",
+                properties: [
+                    new OA\Property(property: "title", type: "string", example: "Nouveau titre"),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(
+                response: 204,
+                description: "Catégorie modifiée avec succès",
+            ),
+            new OA\Response(
+                response: 404,
+                description: "Catégorie non trouvée",
+                content: new OA\JsonContent(
+                    type: "object",
+                    properties: [
+                        new OA\Property(property: "error", type: "string", example: "Catégorie non trouvée"),
+                    ]
+                )
+            ),
+        ]
+    )]
     public function edit(int $id, Request $request): JsonResponse
     {
         $category = $this->repository->find($id);
@@ -81,6 +232,35 @@ class CategoryController extends AbstractController
     }
 
     #[Route('/{id}', name: 'delete', methods: ['DELETE'])]
+    #[OA\Delete(
+        path: '/api/category/{id}',
+        summary: "Supprimer une catégorie",
+        parameters: [
+            new OA\Parameter(
+                name: 'id',
+                in: 'path',
+                required: true,
+                description: "ID de la catégorie",
+                schema: new OA\Schema(type: 'integer', example: 1)
+            ),
+        ],
+        responses: [
+            new OA\Response(
+                response: 204,
+                description: "Catégorie supprimée avec succès"
+            ),
+            new OA\Response(
+                response: 404,
+                description: "Catégorie non trouvée",
+                content: new OA\JsonContent(
+                    type: "object",
+                    properties: [
+                        new OA\Property(property: "error", type: "string", example: "Catégorie non trouvée"),
+                    ]
+                )
+            ),
+        ]
+    )]
     public function delete(int $id): JsonResponse
     {
         $category = $this->repository->find($id);

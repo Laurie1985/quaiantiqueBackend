@@ -4,6 +4,7 @@ namespace App\Controller;
 use App\Entity\Menu;
 use App\Repository\MenuRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use OpenApi\Attributes as OA;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -24,6 +25,65 @@ class MenuController extends AbstractController
     ) {}
 
     #[Route('', name: 'new', methods: ['POST'])]
+    #[OA\Post(
+        path: '/api/menu',
+        summary: "Créer un menu",
+        requestBody: new OA\RequestBody(
+            required: true,
+            description: "Données du menu à créer",
+            content: new OA\JsonContent(
+                type: "object",
+                required: ["title", "description", "price"],
+                properties: [
+                    new OA\Property(property: "title", type: "string", example: "Menu découverte"),
+                    new OA\Property(property: "description", type: "string", example: "entrée + plat"),
+                    new OA\Property(property: "price", type: "integer", example: 36),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(
+                response: 201,
+                description: "Menu créé avec succès",
+                content: new OA\JsonContent(
+                    type: "object",
+                    properties: [
+                        new OA\Property(property: "message", type: "string", example: "Menu créé avec succès"),
+                        new OA\Property(
+                            property: "menu",
+                            type: "object",
+                            properties: [
+                                new OA\Property(property: "id", type: "integer", example: 1),
+                                new OA\Property(property: "title", type: "string", example: "Menu découverte"),
+                                new OA\Property(property: "description", type: "string", example: "entrée + plat"),
+                                new OA\Property(property: "price", type: "integer", example: 36),
+                            ]
+                        ),
+                    ]
+                )
+            ),
+            new OA\Response(
+                response: 400,
+                description: "Données manquantes",
+                content: new OA\JsonContent(
+                    type: "object",
+                    properties: [
+                        new OA\Property(property: "error", type: "string", example: "Données manquantes."),
+                    ]
+                )
+            ),
+            new OA\Response(
+                response: 404,
+                description: "Menu non trouvé",
+                content: new OA\JsonContent(
+                    type: "object",
+                    properties: [
+                        new OA\Property(property: "error", type: "string", example: "Menu non trouvé"),
+                    ]
+                )
+            ),
+        ]
+    )]
     public function new (Request $request): JsonResponse
     {
         $menu = $this->serializer->deserialize($request->getContent(), Menu::class, 'json');
@@ -43,6 +103,28 @@ class MenuController extends AbstractController
     }
 
     #[Route('', name: 'list', methods: ['GET'])]
+    #[OA\Get(
+        path: '/api/menu',
+        summary: "Lister tous les menus",
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: "Liste des menus",
+                content: new OA\JsonContent(
+                    type: "array",
+                    items: new OA\Items(
+                        type: "object",
+                        properties: [
+                            new OA\Property(property: "id", type: "integer", example: 1),
+                            new OA\Property(property: "title", type: "string", example: "Menu découverte"),
+                            new OA\Property(property: "description", type: "string", example: "entrée + plat"),
+                            new OA\Property(property: "price", type: "integer", example: 36),
+                        ]
+                    )
+                )
+            ),
+        ]
+    )]
     public function list(): JsonResponse
     {
         $menus        = $this->repository->findAll();
@@ -52,6 +134,44 @@ class MenuController extends AbstractController
     }
 
     #[Route('/{id}', name: 'show', methods: ['GET'])]
+    #[OA\Get(
+        path: '/api/menu/{id}',
+        summary: "Afficher un menu",
+        parameters: [
+            new OA\Parameter(
+                name: 'id',
+                in: 'path',
+                required: true,
+                description: "ID du menu",
+                schema: new OA\Schema(type: 'integer', example: 1)
+            ),
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: "Détails du menu",
+                content: new OA\JsonContent(
+                    type: "object",
+                    properties: [
+                        new OA\Property(property: "id", type: "integer", example: 1),
+                        new OA\Property(property: "title", type: "string", example: "Menu découverte"),
+                        new OA\Property(property: "description", type: "string", example: "entrée + plat"),
+                        new OA\Property(property: "price", type: "integer", example: 36),
+                    ]
+                )
+            ),
+            new OA\Response(
+                response: 404,
+                description: "Menu non trouvé",
+                content: new OA\JsonContent(
+                    type: "object",
+                    properties: [
+                        new OA\Property(property: "error", type: "string", example: "Menu non trouvé"),
+                    ]
+                )
+            ),
+        ]
+    )]
     public function show(int $id): JsonResponse
     {
         $menu = $this->repository->find($id);
@@ -65,6 +185,63 @@ class MenuController extends AbstractController
     }
 
     #[Route('/{id}', name: 'edit', methods: ['PUT'])]
+    #[OA\Put(
+        path: '/api/menu/{id}',
+        summary: "Modifier un menu",
+        parameters: [
+            new OA\Parameter(
+                name: 'id',
+                in: 'path',
+                required: true,
+                description: "ID du menu",
+                schema: new OA\Schema(type: 'integer', example: 1)
+            ),
+        ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            description: "Données à modifier (tous les champs sont optionnels)",
+            content: new OA\JsonContent(
+                type: "object",
+                properties: [
+                    new OA\Property(property: "title", type: "string", example: "Nouveau titre"),
+                    new OA\Property(property: "description", type: "string", example: "nouvelle description"),
+                    new OA\Property(property: "price", type: "integer", example: 41),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: "Menu modifié avec succès",
+                content: new OA\JsonContent(
+                    type: "object",
+                    properties: [
+                        new OA\Property(property: "message", type: "string", example: "Menu modifié avec succès"),
+                        new OA\Property(
+                            property: "menu",
+                            type: "object",
+                            properties: [
+                                new OA\Property(property: "id", type: "integer", example: 1),
+                                new OA\Property(property: "title", type: "string", example: "Nouveau titre"),
+                                new OA\Property(property: "description", type: "string", example: "nouvelle description"),
+                                new OA\Property(property: "price", type: "integer", example: 41),
+                            ]
+                        ),
+                    ]
+                )
+            ),
+            new OA\Response(
+                response: 404,
+                description: "Menu non trouvé",
+                content: new OA\JsonContent(
+                    type: "object",
+                    properties: [
+                        new OA\Property(property: "error", type: "string", example: "Menu non trouvé"),
+                    ]
+                )
+            ),
+        ]
+    )]
     public function edit(int $id, Request $request): JsonResponse
     {
         $menu = $this->repository->find($id);
@@ -87,6 +264,35 @@ class MenuController extends AbstractController
     }
 
     #[Route('/{id}', name: 'delete', methods: ['DELETE'])]
+    #[OA\Delete(
+        path: '/api/menu/{id}',
+        summary: "Supprimer un menu",
+        parameters: [
+            new OA\Parameter(
+                name: 'id',
+                in: 'path',
+                required: true,
+                description: "ID du menu",
+                schema: new OA\Schema(type: 'integer', example: 1)
+            ),
+        ],
+        responses: [
+            new OA\Response(
+                response: 204,
+                description: "Menu supprimé avec succès"
+            ),
+            new OA\Response(
+                response: 404,
+                description: "Menu non trouvé",
+                content: new OA\JsonContent(
+                    type: "object",
+                    properties: [
+                        new OA\Property(property: "error", type: "string", example: "Menu non trouvé"),
+                    ]
+                )
+            ),
+        ]
+    )]
     public function delete(int $id): JsonResponse
     {
         $menu = $this->repository->find($id);
