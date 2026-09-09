@@ -116,7 +116,9 @@ class RestaurantController extends AbstractController
         $restaurant = $this->repository->find($id);
 
         if ($restaurant) {
-            $responseData = $this->serializer->serialize($restaurant, 'json');
+            $responseData = $this->serializer->serialize($restaurant, 'json', [
+                AbstractNormalizer::CIRCULAR_REFERENCE_HANDLER => fn($object) => $object->getId(),
+            ]);
 
             return new JsonResponse($responseData, Response::HTTP_OK, [], true);
         }

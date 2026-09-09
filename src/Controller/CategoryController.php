@@ -122,7 +122,9 @@ class CategoryController extends AbstractController
     {
         $categories = $this->repository->findAll();
 
-        $responseData = $this->serializer->serialize($categories, 'json');
+        $responseData = $this->serializer->serialize($categories, 'json', [
+            AbstractNormalizer::CIRCULAR_REFERENCE_HANDLER => fn($object) => $object->getId(),
+        ]);
         return new JsonResponse($responseData, Response::HTTP_OK, [], true);
     }
 
